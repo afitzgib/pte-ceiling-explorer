@@ -316,13 +316,14 @@ canvas#map{object-fit:contain}
 "use strict";
 const EL_COLORS = {Ni:"#2f6db5",Cr:"#2e8a57",Co:"#d07a1f",V:"#8a5bb8",Cu:"#c99a1c",Zn:"#6a6fd1",Pb:"#c2453a",Cd:"#2a9a9a",As:"#7d8582"};
 const $ = id => document.getElementById(id);
+const DATA_VERSION = "7";
 let META, C = {}, N = 0, gridIdx, result = null, selected = -1;
 
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function hexToRgb(h){ h=h.replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255]; }
 
 async function load(){
-  const j = window.PTE_INLINE || await (await fetch("pte_data.json")).json(); META = j.meta; N = META.n;
+  const j = window.PTE_INLINE || await (await fetch("pte_data.json?v=" + DATA_VERSION, {cache:"no-cache"})).json(); META = j.meta; N = META.n;
   const bin = Uint8Array.from(atob(j.cells), c => c.charCodeAt(0));
   const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"));
   const buf = await new Response(ds).arrayBuffer();
@@ -336,7 +337,7 @@ async function load(){
   const lm = Uint8Array.from(atob(META.landmask), c => c.charCodeAt(0));
   const lmb = new Uint8Array(await new Response(new Blob([lm]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
   C.land = new Uint8Array(1440*560); for (let p=0;p<C.land.length;p++) C.land[p] = (lmb[p>>3] >> (7-(p&7))) & 1;
-  const bm = Uint8Array.from(atob(META.borders), c => c.charCodeAt(0));
+  const bm = Uint8Array.from(atob(META.borders || "H4sIAAAAAAAAAwMAAAAAAAAAAAA="), c => c.charCodeAt(0));
   const bmb = new Uint8Array(await new Response(new Blob([bm]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
   C.border = new Uint8Array(1440*560); for (let p=0;p<C.border.length;p++) C.border[p] = (bmb[p>>3] >> (7-(p&7))) & 1;
   gridIdx = new Int32Array(720*1440).fill(-1);
