@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PTE Ceiling Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}</style>
+<style>
+/* Layout: instrument panel. Sticky control column on the left, map + readouts on the right; stacks on phones. */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --ink:#1c2321; --muted:#5d6763; --line:#d9ddd9; --soft:#e8ebe8;
+  --accent:#2e6b55;          /* olivine green */
+  --accent-ink:#ffffff;
+  --warn:#b3412a; --pre:#7a4f9a; --excl:#b8bdb9; --never:#f4f5f2; --ocean:#d6e0e2; --land:#e8e4d6;
+  --r1:#962a1e; --r2:#cd6234; --r3:#e8a34a; --r4:#aabe78; --r5:#608c68; --r6:#3a6054; --hatch:#8a8a80;
+  --font-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-data:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141917; --panel:#1c2220; --ink:#e7ece9; --muted:#9aa5a0; --line:#2f3835; --soft:#252d2a;
+  --accent:#6cbf9b; --accent-ink:#0f1513; --warn:#e2765d; --pre:#b08ad0; --excl:#4a524f; --never:#3a4340; --ocean:#142026; --land:#2c312c; --r1:#d0533f; --r2:#e07a45; --r3:#eeb260; --r4:#b6c98a; --r5:#79a881; --r6:#5a8a74; --hatch:#6b6f68; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141917; --panel:#1c2220; --ink:#e7ece9; --muted:#9aa5a0; --line:#2f3835; --soft:#252d2a;
+  --accent:#6cbf9b; --accent-ink:#0f1513; --warn:#e2765d; --pre:#b08ad0; --excl:#4a524f; --never:#3a4340; --ocean:#142026; --land:#2c312c; --r1:#d0533f; --r2:#e07a45; --r3:#eeb260; --r4:#b6c98a; --r5:#79a881; --r6:#5a8a74; --hatch:#6b6f68; color-scheme:dark }
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+.wrap{max-width:1500px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+h1{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,2.6vw,32px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);max-width:70ch;margin:4px 0 0}
+.grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+aside.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px);max-height:calc(100vh - 20px);overflow:auto;padding:14px}
+@media (max-width:900px){aside.panel{position:static;max-height:none}}
+fieldset{border:0;margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+fieldset:last-child{border-bottom:0;margin-bottom:0}
+legend{font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:4px}
+label{display:grid;gap:3px;font-size:13px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.val{font-family:var(--font-data);font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
+select,input[type=number]{font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;align-items:center;gap:7px;font-size:13px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button,.preset{font:inherit;font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.preset:hover,.seg button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.presetlab{font-size:12px;color:var(--muted);margin-right:2px}
+.preset[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+details.adv summary{cursor:pointer;font-size:13px;color:var(--muted)}
+details.adv[open] summary{margin-bottom:8px}
+.clearbtn{font:inherit;font-size:12px;padding:2px 9px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink);cursor:pointer;float:right}
+.hint{font-size:12px;color:var(--muted)}
+.customgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.customgrid label{font-family:var(--font-data);font-size:11px}
+main{display:grid;gap:16px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{padding:12px 14px}
+.kpi .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--font-display);font-weight:800;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+.kpi .d{font-size:12px;color:var(--muted)}
+.kpi.hot .v{color:var(--warn)}
+.mapbox{padding:12px;display:grid;gap:8px}
+.mapbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.canvaswrap{position:relative;width:100%;aspect-ratio:1440/560;max-width:100%;background:var(--ocean);border-radius:6px;overflow:hidden}
+canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-2px;margin-right:4px}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+.card{padding:14px;min-width:0}
+.card h2{font-family:var(--font-display);font-weight:700;font-size:15px;margin:0 0 10px}
+svg text{fill:var(--muted);font-family:var(--font-data);font-size:10px}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:34px minmax(0,1fr) 48px;gap:8px;align-items:center;font-family:var(--font-data);font-size:12px}
+.bar .t{height:12px;background:var(--soft);border-radius:3px;overflow:hidden}
+.bar .t span{display:block;height:100%}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted);font-family:var(--font-data)}
+.pill.bad{background:var(--warn);color:#fff}
+.pill.pre{background:var(--pre);color:#fff}
+#detail .empty{color:var(--muted)}
+.notes{font-size:12.5px;color:var(--muted);max-width:110ch}
+.notes li{margin:3px 0}
+.tipwrap{position:relative;display:inline-block;vertical-align:middle;margin-left:4px}
+.info{font:600 11px/1 var(--font-body);width:17px;height:17px;border-radius:50%;border:1px solid var(--muted);background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
+.info:hover,.tipwrap.open .info{border-color:var(--accent);color:var(--accent)}
+.tipwrap .hint{display:none;position:fixed;z-index:1000;left:0;top:0;width:min(280px,80vw);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;box-shadow:0 6px 18px rgba(0,0,0,.12);color:var(--ink)}
+.tipwrap:hover .hint,.tipwrap:focus-within .hint,.tipwrap.open .hint{display:block}
+.howlink{font-size:13px;color:var(--accent);text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
+#loading{padding:40px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>PTE Ceiling Explorer</h1>
+      <p class="sub">How much rock can a field take before soil Ni, Cr, Cu and other trace metals reach the legal limit? Change the feedstock, dose and assumptions; every cropland cell (0.25°) is recomputed by mass balance.</p>
+    </div>
+    <a class="howlink" href="#how" id="howlink">How it works</a>
+    <div class="presets" role="group" aria-label="Scenario presets">
+      <span class="presetlab">Start from a scenario:</span>
+      <button class="preset" data-preset="topup">Basalt, top-up</button>
+      <button class="preset" data-preset="dupla">Basalt, 40 t/ha/yr (Dupla)</button>
+      <button class="preset" data-preset="dunite">Dunite, top-up</button>
+      <button class="preset" data-preset="long">Basalt, 50 years</button>
+      <span class="pill" id="customtag" hidden>Custom settings</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside class="panel" aria-label="Assumptions">
+      <fieldset>
+        <legend>Feedstock</legend>
+        <label for="feed">Rock
+          <select id="feed">
+            <option value="basalt">Basalt, local chemistry (Gard 2019)</option>
+            <option value="dunite">Ultramafic: dunite</option>
+            <option value="harzburgite">Ultramafic: harzburgite</option>
+            <option value="serpentinite">Ultramafic: serpentinite</option>
+            <option value="custom">Custom composition</option>
+          </select>
+        </label>
+        <label for="pair" id="pairwrap">Source for each field
+          <select id="pair">
+            <option value="near">Nearest basalt source</option>
+            <option value="worst">Most PTE-rich source within 300 km</option>
+          </select>
+        </label>
+        <div id="customwrap" hidden>
+          <div class="hint">Rock content, ppm (total)</div>
+          <div class="customgrid" id="customgrid"></div>
+          <label for="customdiss">Dissolves like
+            <select id="customdiss"><option value="b">basalt</option><option value="o">olivine</option></select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Application</legend>
+        <div class="seg" role="group" aria-label="Application mode" id="modeSeg">
+          <button data-mode="topup" aria-pressed="true">Top-up</button>
+          <button data-mode="annual" aria-pressed="false">Fixed annual</button>
+          <button data-mode="oneoff" aria-pressed="false">One-off</button>
+        </div>
+        <div id="m_topup">
+          <label for="stock"><span class="row">Standing stock (initial dose) <span class="val" id="stock_v"></span></span>
+            <input type="range" id="stock" min="5" max="100" step="5" value="30"></label>
+          <div class="hint">Top-up replaces what dissolves. Year-2 top-up = stock × the field's year-1 dissolution (v2 kinetics raster). Dissolution then slows (grains shrink, pH rises, carbonates saturate), so top-ups settle at a fraction of that by year 5.</div>
+          <label for="declmode">Long-run top-up, share of the year-2 top-up
+            <select id="declmode">
+              <option value="spatial">Varies by field (fit to control-site runs)</option>
+              <option value="global">One value everywhere</option>
+            </select>
+          </label>
+          <label for="decline" id="declinewrap" hidden><span class="row">Value <span class="val" id="decline_v"></span></span>
+            <input type="range" id="decline" min="0.2" max="1" step="0.05" value="0.6"></label>
+          <div class="hint" id="declhint">Fitted to the 35 control points (pH feedback + carbonate cap): faster-dissolving, acidic, low-CEC soils slow down most. Ranges ~0.27 (Sahel) to ~0.68 (India); R² = 0.89. An approximation, not the full weathering model.</div>
+        </div>
+        <div id="m_annual" hidden>
+          <label for="rate"><span class="row">Rate <span class="val" id="rate_v"></span></span>
+            <input type="range" id="rate" min="1" max="100" step="1" value="40"></label>
+        </div>
+        <div id="m_oneoff" hidden>
+          <label for="dose"><span class="row">Single dose <span class="val" id="dose_v"></span></span>
+            <input type="range" id="dose" min="5" max="500" step="5" value="30"></label>
+        </div>
+        <label for="horizon"><span class="row">Time horizon <span class="val" id="horizon_v"></span></span>
+          <input type="range" id="horizon" min="1" max="200" step="1" value="10"></label>
+        <div class="hint" id="horizonhint" hidden>Beyond ~100 years the assumptions (constant top-up, no leaching, today's limits) are illustrative only.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Soil</legend>
+        <label for="bgmode">Starting soil level
+          <select id="bgmode">
+            <option value="typical">Typical world soil (Kabata-Pendias 2001)</option>
+            <option value="zero">Zero (rock loading only)</option>
+            <option value="frac">Fraction of the limit</option>
+          </select>
+        </label>
+        <label for="bgfrac" id="bgfracwrap" hidden><span class="row">Starting level, share of limit <span class="val" id="bgfrac_v"></span></span>
+          <input type="range" id="bgfrac" min="0" max="0.95" step="0.05" value="0.5"></label>
+        <details class="adv"><summary>Advanced: soil mass the rock mixes into</summary>
+        <div class="hint" style="margin-bottom:6px">Depth × bulk density sets the soil mass per hectare (20 cm × 1.3 t/m³ ≈ 2,600 t). More soil dilutes the rock more. Depth should match how limits are sampled (usually 0–20 or 0–30 cm).</div>
+        <label for="depth"><span class="row">Mixing depth <span class="val" id="depth_v"></span></span>
+          <input type="range" id="depth" min="5" max="40" step="1" value="20"></label>
+        <label for="bd"><span class="row">Bulk density <span class="val" id="bd_v"></span></span>
+          <input type="range" id="bd" min="0.9" max="1.7" step="0.05" value="1.3"></label>
+        </details>
+      </fieldset>
+
+      <fieldset>
+        <legend>Legal limits</legend>
+        <label for="capmode">Limit applied
+          <select id="capmode">
+            <option value="national">National (EU Directive / global median where none)</option>
+            <option value="median">Global median everywhere</option>
+            <option value="strict">Strictest national value everywhere</option>
+            <option value="lenient">Most lenient national value everywhere</option>
+          </select>
+        </label>
+        <label class="check" for="aqua"><input type="checkbox" id="aqua"> Aqua regia basis (Taraškevičius f, European soils)</label>
+        <div class="hint">Off = everything on a total basis (recommended, conservative).</div>
+        <div class="check"><input type="checkbox" id="elCo"><label for="elCo">Include Co</label>
+          <input type="checkbox" id="elV" style="margin-left:10px"><label for="elV">Include V</label></div>
+        <div class="hint">Co and V are off by default: few countries regulate them, so their limits are thin.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Existing contamination screen (Hou et al. 2025)</legend>
+        <label for="houmode">Exclude fields where Hou flags
+          <select id="houmode">
+            <option value="matched">Elements the rock adds (Ni, Cr, Cu, Co)</option>
+            <option value="blanket">Any of the 7 metals</option>
+            <option value="none">No screen</option>
+          </select>
+        </label>
+        <label for="houP" id="houPwrap"><span class="row">Exceedance probability cut-off <span class="val" id="houP_v"></span></span>
+          <input type="range" id="houP" min="0.02" max="0.95" step="0.01" value="0.5"></label>
+        <div class="hint" id="houhint">Below 0.5 is stricter than Noema's framework, which deploys (with a flag) where 0.2 ≤ P &lt; 0.5.</div>
+      </fieldset>
+    </aside>
+
+    <main>
+      <div id="loading" class="panel">Loading 109,070 cropland cells…</div>
+      <section class="kpis" id="kpis" hidden aria-live="polite">
+        <div class="panel kpi hot"><div class="k">Reach a limit within horizon</div><div class="v" id="k_capped">–</div><div class="d" id="k_capped_d"></div></div>
+        <div class="panel kpi"><div class="k">Rock until first limit (median)</div><div class="v" id="k_tons">–</div><div class="d" id="k_tons_d"></div></div>
+        <div class="panel kpi"><div class="k">Excluded by Hou screen</div><div class="v" id="k_excl">–</div><div class="d" id="k_excl_d"></div></div>
+        <div class="panel kpi"><div class="k">Soil already over a limit</div><div class="v" id="k_pre">–</div><div class="d">Typical background exceeds a strict limit before any rock is added.</div></div>
+      </section>
+
+      <section class="panel mapbox" id="mapcard" hidden>
+        <div class="mapbar">
+          <div class="seg" role="group" aria-label="Map layer" id="layerSeg">
+            <button data-layer="years" aria-pressed="true">Years to first limit</button>
+            <button data-layer="element" aria-pressed="false">Binding element</button>
+            <button data-layer="tons" aria-pressed="false">Rock to first limit</button>
+          </div>
+          <span class="hint" id="layerhint"></span>
+        </div>
+        <div class="canvaswrap"><canvas id="map" width="1440" height="560" aria-label="World map of cropland cells coloured by the selected layer"></canvas></div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <div class="two" id="lower" hidden>
+        <section class="panel card">
+          <h2>Cropland reaching a limit over time</h2>
+          <svg id="curve" viewBox="0 0 560 220" width="100%" role="img" aria-label="Share of eligible cropland that has reached a legal limit, by year"></svg>
+          <h2 style="margin-top:14px">Element that binds first</h2>
+          <div class="bars" id="bars"></div>
+        </section>
+        <section class="panel card">
+          <h2>Selected cell <button class="clearbtn" id="clearsel" hidden>Clear</button></h2>
+          <div id="detail"><p class="empty">Click a cell on the map.</p></div>
+          <h2 style="margin-top:14px">Countries with the most capped cropland</h2>
+          <div class="tablewrap"><table id="ctable"><thead><tr><th>Country</th><th>Limit source</th><th class="n">Capped (Mha)</th><th class="n">Share of country</th></tr></thead><tbody></tbody></table></div>
+        </section>
+      </div>
+
+      <section class="panel card notes" id="notes-src" hidden>
+        <h2>How it works</h2>
+        <ul>
+          <li><b>Mass balance.</b> Soil increase = rock content × cumulative rock ÷ soil mass (depth × bulk density). A limit binds when starting level + increase ≥ limit. All applied rock counts, dissolved or not; no leaching or crop uptake (conservative).</li>
+          <li><b>Rock chemistry.</b> Basalt: Gard 2019, basalt–andesite (45–63 wt% SiO₂), kriged per 0.1° source cell (Ni, Cr, Co from the Mg relationship; As, Cd class medians). Ultramafics: Gard rock-type medians; As and Cd for ultramafics are literature-range placeholders.</li>
+          <li><b>Pairing.</b> Each field is paired with its nearest basalt source (or the most PTE-rich within 300 km), a proxy for routing.</li>
+          <li><b>Limits.</b> Noema's regulatory database, one screening-tier value per country. Where limits depend on soil conditions they are matched to each field: China and Portugal by soil pH, Slovakia and the Czech Republic by texture (SoilGrids). China's two middle pH classes are filled from GB 15618-2018 and still need checking against the standard. EU Directive or the global median of national limits where a country has none.</li>
+          <li><b>Background.</b> One global set from Kabata-Pendias (2001), not spatial: world means, except Cd, which uses the US agricultural geometric mean (0.175 mg/kg) because the world arithmetic mean (0.53) is inflated by contaminated soils. Other values agree with national surveys within about ±30%; Cr is the most sensitive (its background is about half its limit). Hou et al. (2025) exceedance probabilities are used only to exclude likely-contaminated fields; they cannot be converted to concentrations.</li>
+          <li><b>Not modelled.</b> Real routing, per-field dissolution with pH feedback (approximated by the decline factor), plant uptake, leaching, Cr speciation, pasture land. Legal limits are not toxicity thresholds.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const EL_COLORS = {Ni:"#2f6db5",Cr:"#2e8a57",Co:"#d07a1f",V:"#8a5bb8",Cu:"#c99a1c",Zn:"#6a6fd1",Pb:"#c2453a",Cd:"#2a9a9a",As:"#7d8582"};
+const $ = id => document.getElementById(id);
+let META, C = {}, N = 0, gridIdx, result = null, selected = -1;
+
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function hexToRgb(h){ h=h.replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255]; }
+
+async function load(){
+  const j = window.PTE_INLINE || await (await fetch("pte_data.json")).json(); META = j.meta; N = META.n;
+  const bin = Uint8Array.from(atob(j.cells), c => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"));
+  const buf = await new Response(ds).arrayBuffer();
+  let off = 0;
+  const take = (Type, bytes) => { const a = new Type(buf.slice(off, off + N*bytes)); off += N*bytes; return a; };
+  C.row = take(Uint16Array,2); C.col = take(Uint16Array,2); C.iso = take(Uint16Array,2); C.ha = take(Float32Array,4);
+  C.P = {}; for (const e of META.hou_elements) C.P[e] = take(Uint8Array,1);
+  C.near = {}; for (const e of META.elements) C.near[e] = take(Float32Array,4);
+  C.worst = {}; for (const e of META.elements) C.worst[e] = take(Float32Array,4);
+  C.db = take(Float32Array,4); C.do = take(Float32Array,4); C.ph = take(Float32Array,4); C.cec = take(Float32Array,4); C.sand = take(Float32Array,4); C.clay = take(Float32Array,4);
+  const lm = Uint8Array.from(atob(META.landmask), c => c.charCodeAt(0));
+  const lmb = new Uint8Array(await new Response(new Blob([lm]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  C.land = new Uint8Array(1440*560); for (let p=0;p<C.land.length;p++) C.land[p] = (lmb[p>>3] >> (7-(p&7))) & 1;
+  gridIdx = new Int32Array(720*1440).fill(-1);
+  for (let i=0;i<N;i++) gridIdx[C.row[i]*1440 + C.col[i]] = i;
+  C.totalHa = C.ha.reduce((a,b)=>a+b,0);
+  const med = a => { const b = Float32Array.from(a).sort(); return b[b.length>>1]; };
+  C.dbMed = med(C.db); C.doMed = med(C.do); C.phMed = med(C.ph); C.cecMed = med(C.cec);
+  buildCustom(); bind(); $("loading").hidden = true;
+  document.querySelector('[data-preset="topup"]').setAttribute("aria-pressed","true");
+  ["kpis","mapcard","lower"].forEach(id => $(id).hidden = false);
+  makeTips(); setupHow();
+  schedule();
+}
+
+function makeTips(){
+  document.querySelectorAll("aside .hint, .mapbar .hint").forEach(h=>{
+    if (["horizonhint","houhint"].includes(h.id)) return;           // warnings stay visible
+    const prev = h.previousElementSibling; const w = document.createElement("span"); w.className = "tipwrap";
+    const b = document.createElement("button"); b.className = "info"; b.type = "button"; b.textContent = "i"; b.setAttribute("aria-label","More information");
+    const place = ()=>{ const r = b.getBoundingClientRect(), wd = Math.min(280, innerWidth*0.8);
+      h.style.left = Math.max(8, Math.min(r.left, innerWidth - wd - 8)) + "px";
+      const below = r.bottom + 6, hgt = h.offsetHeight || 120;
+      h.style.top = (below + hgt > innerHeight - 8 ? Math.max(8, r.top - hgt - 6) : below) + "px"; };
+    w.addEventListener("mouseenter", ()=>requestAnimationFrame(place)); b.addEventListener("focus", ()=>requestAnimationFrame(place));
+    b.addEventListener("click", ev=>{ ev.stopPropagation(); w.classList.toggle("open"); requestAnimationFrame(place); });
+    document.querySelector("aside").addEventListener("scroll", ()=>w.classList.remove("open"), {passive:true});
+    h.parentNode.insertBefore(w, h); w.appendChild(b); w.appendChild(h);
+    const host = prev && prev.matches("label,.check,.seg,select") ? prev : null;
+    if (host){ const t = host.querySelector(".row") || host; t.appendChild(w); }
+  });
+  document.addEventListener("click", ()=>document.querySelectorAll(".tipwrap.open").forEach(w=>w.classList.remove("open")));
+}
+function setupHow(){
+  const how = document.createElement("div"); how.className = "wrap"; how.id = "howview"; how.hidden = true;
+  how.innerHTML = '<p><a class="howlink" href="#">← Back to the explorer</a></p>' + $("notes-src").innerHTML;
+  document.body.appendChild(how);
+  const show = ()=>{ const on = location.hash === "#how"; how.hidden = !on; document.querySelector(".wrap").hidden = on; if (on) scrollTo(0,0); };
+  addEventListener("hashchange", show); show();
+}
+function buildCustom(){
+  const g = $("customgrid"); g.innerHTML = "";
+  for (const e of META.elements){
+    const v = META.median_rock_basalt[e];
+    g.insertAdjacentHTML("beforeend", `<label for="cu_${e}">${e}<input type="number" id="cu_${e}" min="0" step="any" value="${v}"></label>`);
+  }
+}
+
+function state(){
+  const mode = document.querySelector("#modeSeg [aria-pressed=true]").dataset.mode;
+  const layer = document.querySelector("#layerSeg [aria-pressed=true]").dataset.layer;
+  const els = META.elements.filter(e => (e==="Co" ? $("elCo").checked : e==="V" ? $("elV").checked : true));
+  return { feed:$("feed").value, pair:$("pair").value, mode, layer, els,
+    stock:+$("stock").value, decline:+$("decline").value, rate:+$("rate").value, dose:+$("dose").value, T:+$("horizon").value,
+    bgmode:$("bgmode").value, bgfrac:+$("bgfrac").value, depth:+$("depth").value, bd:+$("bd").value,
+    capmode:$("capmode").value, aqua:$("aqua").checked, houmode:$("houmode").value, houP:+$("houP").value,
+    customDiss:$("customdiss").value, declmode:$("declmode").value };
+}
+
+function syncLabels(s){
+  $("stock_v").textContent = s.stock + " t/ha"; $("decline_v").textContent = "× " + s.decline.toFixed(2);
+  $("rate_v").textContent = s.rate + " t/ha/yr"; $("dose_v").textContent = s.dose + " t/ha";
+  $("horizon_v").textContent = s.T + (s.T===1?" year":" years");
+  $("bgfrac_v").textContent = Math.round(s.bgfrac*100) + "%"; $("depth_v").textContent = s.depth + " cm"; $("bd_v").textContent = s.bd.toFixed(2) + " t/m³";
+  $("houP_v").textContent = "P ≥ " + s.houP.toFixed(2);
+  $("m_topup").hidden = s.mode!=="topup"; $("m_annual").hidden = s.mode!=="annual"; $("m_oneoff").hidden = s.mode!=="oneoff";
+  $("pairwrap").hidden = s.feed!=="basalt"; $("customwrap").hidden = s.feed!=="custom";
+  $("bgfracwrap").hidden = s.bgmode!=="frac"; $("houPwrap").hidden = s.houmode==="none";
+  $("declinewrap").hidden = s.declmode!=="global"; $("declhint").hidden = s.declmode!=="spatial";
+  $("horizonhint").hidden = s.T <= 100; $("houhint").hidden = s.houmode==="none" || s.houP >= 0.5;
+  $("houP_v").textContent = "P ≥ " + s.houP.toFixed(2);
+  $("layerhint").textContent = ({years:"When the first limit is reached under your dose schedule.",
+    element:"Binding element: the metal that reaches its limit first and stops further application.",
+    tons:"Total rock (t/ha) a field can take before its first limit. Independent of dose and horizon."})[s.layer] + " Click a cell for its numbers.";
+}
+
+// cumulative rock schedule -> first year n where cumulative >= tons (Infinity if never within 10,000 yr)
+function phiFor(s, k1, ph, cec){
+  if (s.declmode!=="spatial") return s.decline;
+  const f = META.decline_fit; return Math.min(f.hi, Math.max(f.lo, f.a + f.b_k1*Math.min(k1,1) + f.c_ph*ph + f.d_cec*cec));
+}
+function yearFor(tons, s, k1, phi){
+  if (!(tons > 0)) return 1;
+  if (s.mode==="annual") return Math.ceil(tons / s.rate);
+  if (s.mode==="oneoff") return s.dose >= tons ? 1 : Infinity;
+  const S = s.stock; if (tons <= S) return 1;
+  const u2 = S * Math.min(k1, 1), uss = u2 * phi;
+  const u = [u2, u2 + (uss-u2)/3, u2 + 2*(uss-u2)/3];
+  let cum = S;
+  for (let y=0; y<3; y++){ cum += u[y]; if (cum >= tons) return y + 2; }
+  if (uss <= 0) return Infinity;
+  return 4 + Math.ceil((tons - cum) / uss);
+}
+function cumAt(year, s, k1, phi){
+  if (s.mode==="annual") return s.rate*year;
+  if (s.mode==="oneoff") return s.dose;
+  const S=s.stock, u2=S*Math.min(k1,1), uss=u2*phi, u=[u2,u2+(uss-u2)/3,u2+2*(uss-u2)/3];
+  let cum=S; for(let y=2;y<=year;y++) cum += y<=4 ? u[y-2] : uss; return cum;
+}
+
+function capFor(i, e, s){
+  const iso = C.iso[i]; const st = META.cap_stats[e];
+  if (s.capmode==="median") return [st.median,"G"];
+  if (s.capmode==="strict") return [st.min,"S"];
+  if (s.capmode==="lenient") return [st.max,"L"];
+  const code = META.isos[iso], cc = META.cap_classes[code];
+  if (cc && cc.values[e]){
+    let k;
+    if (cc.by==="ph"){ k = 0; for (const ed of cc.edges) if (C.ph[i] > ed) k++; return [cc.values[e][k], "P"]; }
+    if (cc.by==="texture3"){ k = C.clay[i] > 27 ? 2 : (C.sand[i] > 70 && C.clay[i] < 15 ? 0 : 1); return [cc.values[e][k], "X"]; }
+    if (cc.by==="texture2"){ k = C.sand[i] > 65 ? 0 : 1; return [cc.values[e][k], "X"]; }
+  }
+  const c = META.caps[code]; return c && c[e] ? c[e] : [st.median,"G"];
+}
+
+function rockFor(i, e, s){
+  if (s.feed==="basalt") return (s.pair==="worst" ? C.worst : C.near)[e][i];
+  if (s.feed==="custom") return Math.max(+$("cu_"+e).value || 0, 0);
+  return META.ultramafic[s.feed][e];
+}
+function dissFor(i, s){
+  if (s.feed==="basalt") return C.db[i];
+  if (s.feed==="custom") return s.customDiss==="o" ? C.do[i] : C.db[i];
+  return C.do[i];
+}
+
+function compute(){
+  const s = state(); syncLabels(s);
+  const M = s.depth * s.bd * 100;                // t soil per ha
+  const houEls = s.houmode==="matched" ? ["Ni","Cr","Cu","Co"] : s.houmode==="blanket" ? META.hou_elements : [];
+  const thr = Math.round(s.houP*250);
+  const first = new Float64Array(N), tons = new Float64Array(N), bindEl = new Int8Array(N).fill(-1);
+  const excl = new Uint8Array(N), pre = new Uint8Array(N);
+  for (let i=0;i<N;i++){
+    let ex = 0; for (const e of houEls) if (C.P[e][i] >= thr) { ex = 1; break; }
+    excl[i] = ex;
+    const k1 = dissFor(i, s); const phi = phiFor(s, k1, C.ph[i], C.cec[i]);
+    let best = Infinity, bestT = Infinity, bi = -1, anyPre = 0;
+    for (let k=0;k<s.els.length;k++){
+      const e = s.els[k];
+      const cap = capFor(i, e, s)[0];
+      const f = s.aqua ? META.f_aqua_regia[e] : 1;
+      const bg = s.bgmode==="zero" ? 0 : s.bgmode==="frac" ? cap*s.bgfrac : META.background_total[e]*f;
+      const head = cap - bg;
+      if (head <= 0){ anyPre = 1; continue; }
+      const rc = rockFor(i, e, s) * f;
+      if (!(rc > 0)) continue;
+      const t = head * M / rc;
+      if (t < bestT){ bestT = t; bi = META.elements.indexOf(e); }
+    }
+    pre[i] = anyPre;
+    tons[i] = bestT; bindEl[i] = bi;
+    first[i] = isFinite(bestT) ? yearFor(bestT, s, k1, phi) : Infinity;
+  }
+  result = {s, first, tons, bindEl, excl, pre, M};
+  render();
+}
+
+function fmtPct(x){ return x < 0.05 && x > 0 ? "<0.1%" : (x < 10 ? x.toFixed(1) : x.toFixed(0)) + "%"; }
+function fmtT(t){ return !isFinite(t) ? "never" : t >= 10000 ? (t/1000).toFixed(0)+"k t/ha" : (t<10 ? t.toFixed(1) : Math.round(t).toLocaleString("en-US")) + " t/ha"; }
+function fmtY(y){ return !isFinite(y) || y > 10000 ? "never" : y + (y===1?" yr":" yrs"); }
+
+function render(){
+  const {s, first, tons, bindEl, excl, pre} = result;
+  let elig = 0, capped = 0, exHa = 0, preHa = 0;
+  const elHa = new Float64Array(META.elements.length);
+  const byYear = new Float64Array(s.T + 1);
+  const ctry = new Map();
+  const eligTons = [];
+  for (let i=0;i<N;i++){
+    const h = C.ha[i];
+    if (excl[i]) { exHa += h; continue; }
+    elig += h; if (pre[i]) preHa += h;
+    if (bindEl[i] >= 0) elHa[bindEl[i]] += h;
+    eligTons.push([tons[i], h]);
+    const iso = C.iso[i]; let c = ctry.get(iso); if (!c){ c = {ha:0, cap:0}; ctry.set(iso, c); } c.ha += h;
+    if (first[i] <= s.T){ capped += h; c.cap += h; byYear[first[i]] += h; }
+  }
+  eligTons.sort((a,b)=>a[0]-b[0]); let acc=0, med=Infinity; for (const [t,h] of eligTons){ acc+=h; if (acc>=elig/2){ med=t; break; } }
+  $("k_capped").textContent = fmtPct(100*capped/elig);
+  $("k_capped_d").textContent = `${(capped/1e6).toFixed(1)} Mha of ${(elig/1e6).toFixed(0)} Mha eligible cropland, within ${s.T} ${s.T===1?"year":"years"}`;
+  $("k_tons").textContent = fmtT(med);
+  const olv = s.feed!=="basalt" && !(s.feed==="custom" && s.customDiss==="b");
+  const k1m = olv ? C.doMed : C.dbMed; const k1med = cumAt(s.T, s, k1m, phiFor(s, k1m, C.phMed, C.cecMed));
+  $("k_tons_d").textContent = `Typical rock applied by year ${s.T}: ~${k1med.toFixed(0)} t/ha` + (s.mode==="topup" ? " (median dissolution)" : "");
+  $("k_excl").textContent = fmtPct(100*exHa/C.totalHa);
+  $("k_excl_d").textContent = s.houmode==="none" ? "No screen applied" : `Hou P ≥ ${s.houP.toFixed(2)} for ${s.houmode==="matched" ? "Ni, Cr, Cu or Co" : "any of 7 metals"}`;
+  $("k_pre").textContent = fmtPct(100*preHa/elig);
+
+  // curve
+  const W=560,H=220,pl=40,pr=10,pt=10,pb=28, iw=W-pl-pr, ih=H-pt-pb;
+  let cum=0; const pts=[[0,0]]; for (let y=1;y<=s.T;y++){ cum+=byYear[y]; pts.push([y,100*cum/elig]); }
+  const ymax = Math.max(5, Math.ceil(Math.max(...pts.map(p=>p[1]))/5)*5);
+  const X = y => pl + iw*y/s.T, Y = v => pt + ih*(1 - v/ymax);
+  const muted = css("--line"), acc2 = css("--warn");
+  let g = "";
+  for (let k=0;k<=4;k++){ const v=ymax*k/4; g += `<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${muted}" stroke-width="1"/><text x="${pl-6}" y="${Y(v)+3}" text-anchor="end">${v.toFixed(ymax<10?1:0)}%</text>`; }
+  const xt = s.T<=10 ? 1 : s.T<=30 ? 5 : 10;
+  for (let y=0;y<=s.T;y+=xt) g += `<text x="${X(y)}" y="${H-10}" text-anchor="middle">${y}</text>`;
+  g += `<text x="${pl+iw/2}" y="${H}" text-anchor="middle">years</text>`;
+  const path = pts.map((p,k)=>`${k?"L":"M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+  g += `<path d="${path} L${X(s.T)},${Y(0)} L${X(0)},${Y(0)}Z" fill="${acc2}" opacity="0.15"/><path d="${path}" fill="none" stroke="${acc2}" stroke-width="2"/>`;
+  const last = pts[pts.length-1]; g += `<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="3.5" fill="${acc2}"/>`;
+  $("curve").innerHTML = g;
+
+  // bars
+  const totEl = elHa.reduce((a,b)=>a+b,0) || 1;
+  $("bars").innerHTML = META.elements.map((e,k)=>({e,v:100*elHa[k]/totEl})).filter(o=>s.els.includes(o.e)).sort((a,b)=>b.v-a.v)
+    .map(o=>`<div class="bar"><span>${o.e}</span><div class="t"><span style="width:${o.v.toFixed(1)}%;background:${EL_COLORS[o.e]}"></span></div><span style="text-align:right">${o.v.toFixed(0)}%</span></div>`).join("");
+
+  // country table
+  const rows = [...ctry.entries()].filter(([,c])=>c.cap>0).sort((a,b)=>b[1].cap-a[1].cap).slice(0,10);
+  const tb = $("ctable").querySelector("tbody");
+  tb.innerHTML = rows.length ? rows.map(([iso,c])=>{
+    const code = META.isos[iso]; const src = s.capmode==="national" ? ({N:"national",E:"EU Directive",G:"global median"})[(META.caps[code]?.Ni||[0,"G"])[1]] : s.capmode;
+    return `<tr><td>${META.names[code]||code}</td><td><span class="pill">${src}</span></td><td class="n">${(c.cap/1e6).toFixed(2)}</td><td class="n">${fmtPct(100*c.cap/c.ha)}</td></tr>`; }).join("")
+    : `<tr><td colspan="4" style="color:var(--muted)">No cropland reaches a limit within ${s.T} ${s.T===1?"year":"years"}.</td></tr>`;
+
+  drawMap(); if (selected >= 0) showDetail(selected);
+}
+
+const YEAR_BINS = T => [[1,T],[T+1,2*T],[2*T+1,5*T],[5*T+1,20*T],[20*T+1,Infinity]];
+function yearColors(){ return ["--r1","--r2","--r3","--r5","--r6"].map(v=>hexToRgb(css(v))); }
+const TON_BINS = [30,100,300,1000,3000,Infinity];
+function tonColors(){ return ["--r1","--r2","--r3","--r4","--r5","--r6"].map(v=>hexToRgb(css(v))); }
+
+function drawMap(){
+  const {s, first, tons, bindEl, excl, pre} = result;
+  const cv = $("map"), ctx = cv.getContext("2d");
+  const img = ctx.createImageData(1440, 560); const d = img.data;
+  const oc = hexToRgb(css("--ocean")), ld = hexToRgb(css("--land"));
+  for (let q=0,p=0;q<C.land.length;q++,p+=4){ const c = C.land[q] ? ld : oc; d[p]=c[0]; d[p+1]=c[1]; d[p+2]=c[2]; d[p+3]=255; }
+  const ex = hexToRgb(css("--hatch")), pr = hexToRgb(css("--pre"));
+  const yc = yearColors(), tc = tonColors(); const bins = YEAR_BINS(s.T);
+  const elc = META.elements.map(e=>hexToRgb(EL_COLORS[e])); const nv = hexToRgb(css("--never"));
+  for (let i=0;i<N;i++){
+    const r = C.row[i] - 40; if (r<0 || r>=560) continue;
+    const p = (r*1440 + C.col[i])*4; let c;
+    if (excl[i]) c = ((C.row[i] + C.col[i]) % 4 < 2) ? ex : ld;
+    else if (s.layer==="years"){ const y=first[i]; let k=bins.findIndex(b=>y>=b[0]&&y<=b[1]); if(k<0) k=4; c = yc[k]; }
+    else if (s.layer==="tons"){ const t=tons[i]; let k=TON_BINS.findIndex(b=>t<b); if(k<0) k=5; c = tc[k]; }
+    else { const b=bindEl[i]; c = b<0 ? nv : (first[i]<=s.T ? elc[b] : elc[b].map((v,k)=>Math.round(v+(nv[k]-v)*0.55))); }
+    if (pre[i] && !excl[i] && ((C.row[i] + C.col[i]) % 2 === 0)) c = pr;
+    d[p]=c[0]; d[p+1]=c[1]; d[p+2]=c[2];
+  }
+  if (selected>=0){ const r=C.row[selected]-40, cc=C.col[selected]; const ink=hexToRgb(css("--ink"));
+    for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ if (Math.max(Math.abs(dx),Math.abs(dy))!==3) continue; const rr=r+dy, c2=cc+dx; if(rr<0||rr>=560||c2<0||c2>=1440) continue; const p=(rr*1440+c2)*4; d[p]=ink[0]; d[p+1]=ink[1]; d[p+2]=ink[2]; } }
+  ctx.putImageData(img,0,0);
+
+  const sw = c => `<i style="background:rgb(${c.join(",")})"></i>`;
+  const hatchSw = `<i style="background:repeating-linear-gradient(45deg,var(--hatch) 0 2px,var(--land) 2px 4px)"></i>`;
+  const preSw = `<i style="background:repeating-conic-gradient(var(--pre) 0 25%,transparent 0 50%) 0 0/4px 4px"></i>`;
+  let L = "";
+  if (s.layer==="years"){ const lab=[`≤ ${s.T} yrs (within horizon)`,`${s.T+1}–${2*s.T}`,`${2*s.T+1}–${5*s.T}`,`${5*s.T+1}–${20*s.T}`,`> ${20*s.T} yrs / never`];
+    L = lab.map((t,k)=>`<span>${sw(yc[k])}${t}</span>`).join(""); }
+  else if (s.layer==="tons"){ const lab=["< 30 t/ha","30–100","100–300","300–1,000","1,000–3,000","> 3,000"]; L = lab.map((t,k)=>`<span>${sw(tc[k])}${t}</span>`).join(""); }
+  else { L = s.els.map(e=>`<span>${sw(hexToRgb(EL_COLORS[e]))}${e}</span>`).join("") + `<span class="hint">faded = binds only after the horizon</span>`; }
+  L += `<span>${preSw}soil already over a limit</span><span>${hatchSw}excluded (Hou screen)</span>`;
+  $("legend").innerHTML = L;
+}
+
+function showDetail(i){
+  const {s, first, tons, bindEl, excl, M} = result; const iso = META.isos[C.iso[i]];
+  const lat = 90 - (C.row[i]+0.5)*0.25, lon = -180 + (C.col[i]+0.5)*0.25;
+  const k1 = dissFor(i, s); const phi = phiFor(s, k1, C.ph[i], C.cec[i]);
+  const rows = s.els.map(e=>{
+    const [cap, src] = capFor(i, e, s); const f = s.aqua ? META.f_aqua_regia[e] : 1;
+    const bg = s.bgmode==="zero" ? 0 : s.bgmode==="frac" ? cap*s.bgfrac : META.background_total[e]*f;
+    const rc = rockFor(i,e,s); const head = cap-bg; const t = head>0 && rc>0 ? head*M/(rc*f) : (head<=0?0:Infinity);
+    const yy = head<=0 ? 0 : yearFor(t, s, k1, phi);
+    const y = head<=0 ? "already over" : fmtY(yy);
+    const cls = head<=0 ? "pre" : (yy<=s.T ? "bad" : "");
+    return `<tr><td>${e}</td><td class="n">${rc.toPrecision(3)}</td><td class="n">${bg.toPrecision(3)}</td><td class="n">${cap.toPrecision(3)}<span class="hint"> ${({N:"nat",E:"EU",G:"med",S:"min",L:"max",P:"pH",X:"texture"})[src]}</span></td><td class="n">${head<=0?"–":fmtT(t)}</td><td class="n"><span class="pill ${cls}">${y}</span></td></tr>`;
+  }).join("");
+  const hou = META.hou_elements.map(e=>`${e} ${(C.P[e][i]/250).toFixed(2)}`).join(" · ");
+  $("clearsel").hidden = false;
+  $("detail").innerHTML = `<p style="margin:0 0 6px"><b>${META.names[iso]||iso}</b> · ${lat.toFixed(2)}°, ${lon.toFixed(2)}° · ${(C.ha[i]/1000).toFixed(0)} kha cropland
+    ${excl[i] ? ' · <span class="pill">excluded by Hou screen</span>' : ""}</p>
+    <p class="hint" style="margin:0 0 8px">Year-1 dissolution: ${(k1*100).toFixed(1)}%${s.mode==="topup" ? ` · long-run top-up × ${phi.toFixed(2)} (soil pH ${C.ph[i].toFixed(1)}, CEC ${C.cec[i].toFixed(0)})` : ""} · Rock applied by year ${s.T}: ${cumAt(s.T,s,k1,phi).toFixed(0)} t/ha · Hou P: ${hou}</p>
+    <div class="tablewrap"><table><thead><tr><th>El.</th><th class="n">Rock ppm</th><th class="n">Start</th><th class="n">Limit</th><th class="n">Rock to limit</th><th class="n">Year</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+let pending = 0;
+function schedule(){ if (pending) return; pending = requestAnimationFrame(()=>{ pending = 0; compute(); }); }
+
+function setSeg(segId, attr, val){ document.querySelectorAll(`#${segId} button`).forEach(b=>b.setAttribute("aria-pressed", String(b.dataset[attr]===val))); }
+
+let applying = false;
+function markCustom(){ if (applying) return; document.querySelectorAll(".preset").forEach(b=>b.setAttribute("aria-pressed","false")); $("customtag").hidden = false; }
+function applyPreset(p){
+  applying = true;
+  const set=(id,v)=>{ const el=$(id); if(el.type==="checkbox") el.checked=v; else el.value=v; };
+  const base = {feed:"basalt",pair:"near",stock:30,decline:0.6,declmode:"spatial",rate:40,dose:30,horizon:10,bgmode:"typical",bgfrac:0.5,depth:20,bd:1.3,capmode:"national",aqua:false,elCo:false,elV:false,houmode:"matched",houP:0.5};
+  const P = {topup:{...base,mode:"topup"}, dupla:{...base,mode:"annual",rate:40}, dunite:{...base,feed:"dunite",mode:"topup"}, long:{...base,mode:"topup",horizon:50}}[p];
+  for (const [k,v] of Object.entries(P)) if (k!=="mode") set(k==="horizon"?"horizon":k, v);
+  setSeg("modeSeg","mode",P.mode);
+  document.querySelectorAll(".preset").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.preset===p))); $("customtag").hidden = true;
+  applying = false; schedule();
+}
+
+function bind(){
+  document.querySelectorAll("aside select, aside input").forEach(el=>el.addEventListener("input", ()=>{ markCustom(); schedule(); }));
+  $("customgrid").addEventListener("input", ()=>{ markCustom(); schedule(); });
+  document.querySelectorAll("#modeSeg button").forEach(b=>b.addEventListener("click",()=>{ setSeg("modeSeg","mode",b.dataset.mode); markCustom(); schedule(); }));
+  const clearSel = ()=>{ selected=-1; $("clearsel").hidden=true; $("detail").innerHTML='<p class="empty">Click a cell on the map.</p>'; result && drawMap(); };
+  $("clearsel").addEventListener("click", clearSel);
+  document.addEventListener("keydown", ev=>{ if (ev.key==="Escape" && selected>=0) clearSel(); });
+  document.querySelectorAll("#layerSeg button").forEach(b=>b.addEventListener("click",()=>{ setSeg("layerSeg","layer",b.dataset.layer); result && (result.s.layer=b.dataset.layer, drawMap(), syncLabels(result.s)); }));
+  document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset)));
+  $("map").addEventListener("click", ev=>{
+    const r = $("map").getBoundingClientRect(); const x = Math.floor((ev.clientX-r.left)/r.width*1440), y = Math.floor((ev.clientY-r.top)/r.height*560)+40;
+    let best=-1, bd=1e9; for (let dy=-4;dy<=4;dy++) for (let dx=-4;dx<=4;dx++){ const rr=y+dy, cc=x+dx; if(rr<0||rr>=720||cc<0||cc>=1440) continue; const i=gridIdx[rr*1440+cc]; if(i>=0){ const dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=i;} } }
+    if (best>=0){ selected=best; drawMap(); showDetail(best); }
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>result && render());
+  new MutationObserver(()=>result && render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+}
+
+load().catch(err=>{ $("loading").textContent = "Could not load the cell data (" + err.message + "). Reload the page to try again."; });
+})();
+</script>
+
+</body>
+</html>
