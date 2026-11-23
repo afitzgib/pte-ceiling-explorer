@@ -96,9 +96,31 @@ td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-
 .tipwrap{position:relative;display:inline-block;vertical-align:middle;margin-left:4px}
 .info{font:600 11px/1 var(--font-body);width:17px;height:17px;border-radius:50%;border:1px solid var(--muted);background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
 .info:hover,.tipwrap.open .info{border-color:var(--accent);color:var(--accent)}
-.tipwrap .hint{display:none;position:fixed;z-index:1000;left:0;top:0;width:min(280px,80vw);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;box-shadow:0 6px 18px rgba(0,0,0,.12);color:var(--ink)}
-.tipwrap:hover .hint,.tipwrap:focus-within .hint,.tipwrap.open .hint{display:block}
+.tipwrap .hint{display:none!important;position:fixed;z-index:1000;left:0;top:0;width:min(280px,80vw);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;box-shadow:0 6px 18px rgba(0,0,0,.12);color:var(--ink)}
+
 .howlink{font-size:13px;color:var(--accent);text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
+/* fit-to-screen app layout */
+.wrap{max-width:none}
+header{margin-bottom:10px}
+header .sub{display:none}
+.grid{grid-template-columns:290px minmax(0,1fr) 230px;gap:12px}
+aside.controls{max-height:calc(100vh - 96px)}
+main{gap:12px}
+.side{display:grid;gap:12px;align-content:start;min-width:0}
+.kpis{grid-template-columns:1fr;gap:8px}
+.kpi{padding:9px 12px}.kpi .v{font-size:24px}
+.canvaswrap{max-height:calc(100vh - 380px);aspect-ratio:auto;height:min(calc((100vw - 610px)*0.389),calc(100vh - 380px))}
+canvas#map{object-fit:contain}
+.two{grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:12px}
+.card{padding:10px 12px}.card h2{margin-bottom:6px}
+#ctable td,#ctable th{padding:4px 4px}
+@media (max-width:1100px){.grid{grid-template-columns:290px minmax(0,1fr)}.side{grid-column:1/-1;grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}.canvaswrap{height:auto;aspect-ratio:1440/560;max-height:none}}
+@media (max-width:900px){.grid{grid-template-columns:1fr}.side{grid-template-columns:1fr}}
+/* square corners everywhere */
+*{border-radius:0!important}.info{border-radius:50%!important}
+#tipbox{position:fixed;z-index:9999;display:none;width:min(280px,80vw);background:var(--panel);border:1px solid var(--line);padding:9px 11px;box-shadow:0 6px 18px rgba(0,0,0,.16);color:var(--ink);font-size:12px;line-height:1.45;pointer-events:none}
+#cellpop{position:fixed;z-index:9000;display:none;width:min(430px,92vw);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--ink);padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#cellpop .x{float:right;font:inherit;font-size:16px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer}
 #loading{padding:40px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -124,7 +146,7 @@ td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-
   </header>
 
   <div class="grid">
-    <aside class="panel" aria-label="Assumptions">
+    <aside class="panel controls" aria-label="Assumptions">
       <fieldset>
         <legend>Feedstock</legend>
         <label for="feed">Rock
@@ -239,13 +261,6 @@ td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-
 
     <main>
       <div id="loading" class="panel">Loading 109,070 cropland cells…</div>
-      <section class="kpis" id="kpis" hidden aria-live="polite">
-        <div class="panel kpi hot"><div class="k">Reach a limit within horizon</div><div class="v" id="k_capped">–</div><div class="d" id="k_capped_d"></div></div>
-        <div class="panel kpi"><div class="k">Rock until first limit (median)</div><div class="v" id="k_tons">–</div><div class="d" id="k_tons_d"></div></div>
-        <div class="panel kpi"><div class="k">Excluded by Hou screen</div><div class="v" id="k_excl">–</div><div class="d" id="k_excl_d"></div></div>
-        <div class="panel kpi"><div class="k">Soil already over a limit</div><div class="v" id="k_pre">–</div><div class="d">Typical background exceeds a strict limit before any rock is added.</div></div>
-      </section>
-
       <section class="panel mapbox" id="mapcard" hidden>
         <div class="mapbar">
           <div class="seg" role="group" aria-label="Map layer" id="layerSeg">
@@ -258,22 +273,16 @@ td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-
         <div class="canvaswrap"><canvas id="map" width="1440" height="560" aria-label="World map of cropland cells coloured by the selected layer"></canvas></div>
         <div class="legend" id="legend"></div>
       </section>
-
       <div class="two" id="lower" hidden>
         <section class="panel card">
           <h2>Cropland reaching a limit over time</h2>
-          <svg id="curve" viewBox="0 0 560 220" width="100%" role="img" aria-label="Share of eligible cropland that has reached a legal limit, by year"></svg>
-          <h2 style="margin-top:14px">Element that binds first</h2>
-          <div class="bars" id="bars"></div>
+          <svg id="curve" viewBox="0 0 560 170" width="100%" role="img" aria-label="Share of eligible cropland that has reached a legal limit, by year"></svg>
         </section>
         <section class="panel card">
-          <h2>Selected cell <button class="clearbtn" id="clearsel" hidden>Clear</button></h2>
-          <div id="detail"><p class="empty">Click a cell on the map.</p></div>
-          <h2 style="margin-top:14px">Countries with the most capped cropland</h2>
-          <div class="tablewrap"><table id="ctable"><thead><tr><th>Country</th><th>Limit source</th><th class="n">Capped (Mha)</th><th class="n">Share of country</th></tr></thead><tbody></tbody></table></div>
+          <h2>Element that binds first</h2>
+          <div class="bars" id="bars"></div>
         </section>
       </div>
-
       <section class="panel card notes" id="notes-src" hidden>
         <h2>How it works</h2>
         <ul>
@@ -286,6 +295,19 @@ td.n{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-
         </ul>
       </section>
     </main>
+
+    <aside class="side" aria-label="Results">
+      <section class="kpis" id="kpis" hidden aria-live="polite">
+        <div class="panel kpi hot"><div class="k">Reach a limit within horizon</div><div class="v" id="k_capped">–</div><div class="d" id="k_capped_d"></div></div>
+        <div class="panel kpi"><div class="k">Rock until first limit (median)</div><div class="v" id="k_tons">–</div><div class="d" id="k_tons_d"></div></div>
+        <div class="panel kpi"><div class="k">Excluded by Hou screen</div><div class="v" id="k_excl">–</div><div class="d" id="k_excl_d"></div></div>
+        <div class="panel kpi"><div class="k">Soil already over a limit</div><div class="v" id="k_pre">–</div><div class="d">Typical background above a strict limit before any rock.</div></div>
+      </section>
+      <section class="panel card" id="ctry" hidden>
+        <h2>Most capped cropland</h2>
+        <div class="tablewrap"><table id="ctable"><thead><tr><th>Country</th><th class="n">Mha</th><th class="n">Share</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </aside>
   </div>
 </div>
 
@@ -314,35 +336,54 @@ async function load(){
   const lm = Uint8Array.from(atob(META.landmask), c => c.charCodeAt(0));
   const lmb = new Uint8Array(await new Response(new Blob([lm]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
   C.land = new Uint8Array(1440*560); for (let p=0;p<C.land.length;p++) C.land[p] = (lmb[p>>3] >> (7-(p&7))) & 1;
+  const bm = Uint8Array.from(atob(META.borders), c => c.charCodeAt(0));
+  const bmb = new Uint8Array(await new Response(new Blob([bm]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  C.border = new Uint8Array(1440*560); for (let p=0;p<C.border.length;p++) C.border[p] = (bmb[p>>3] >> (7-(p&7))) & 1;
   gridIdx = new Int32Array(720*1440).fill(-1);
   for (let i=0;i<N;i++) gridIdx[C.row[i]*1440 + C.col[i]] = i;
   C.totalHa = C.ha.reduce((a,b)=>a+b,0);
   const med = a => { const b = Float32Array.from(a).sort(); return b[b.length>>1]; };
   C.dbMed = med(C.db); C.doMed = med(C.do); C.phMed = med(C.ph); C.cecMed = med(C.cec);
+  const pop = document.createElement("div"); pop.id = "cellpop";
+  pop.innerHTML = '<button class="x" id="cellx" aria-label="Close">×</button><h2 style="font-family:var(--font-display);font-size:15px;margin:0 0 6px">Selected cell</h2><div id="detail"></div>';
+  document.body.appendChild(pop);
   buildCustom(); bind(); $("loading").hidden = true;
   document.querySelector('[data-preset="topup"]').setAttribute("aria-pressed","true");
-  ["kpis","mapcard","lower"].forEach(id => $(id).hidden = false);
+  ["kpis","mapcard","lower","ctry"].forEach(id => $(id).hidden = false);
   makeTips(); setupHow();
   schedule();
 }
 
 function makeTips(){
+  const box = document.createElement("div"); box.id = "tipbox"; document.body.appendChild(box);
+  let pinned = null;
+  const show = (btn, h)=>{ box.innerHTML = h.innerHTML; box.style.display = "block";
+    const r = btn.getBoundingClientRect(), wd = box.offsetWidth, ht = box.offsetHeight;
+    box.style.left = Math.max(8, Math.min(r.left - 8, innerWidth - wd - 8)) + "px";
+    box.style.top = (r.bottom + 6 + ht > innerHeight - 8 ? Math.max(8, r.top - ht - 6) : r.bottom + 6) + "px"; };
+  const hide = ()=>{ box.style.display = "none"; pinned = null; };
   document.querySelectorAll("aside .hint, .mapbar .hint").forEach(h=>{
-    if (["horizonhint","houhint"].includes(h.id)) return;           // warnings stay visible
+    if (["horizonhint","houhint"].includes(h.id)) return;
     const prev = h.previousElementSibling; const w = document.createElement("span"); w.className = "tipwrap";
-    const b = document.createElement("button"); b.className = "info"; b.type = "button"; b.textContent = "i"; b.setAttribute("aria-label","More information");
-    const place = ()=>{ const r = b.getBoundingClientRect(), wd = Math.min(280, innerWidth*0.8);
-      h.style.left = Math.max(8, Math.min(r.left, innerWidth - wd - 8)) + "px";
-      const below = r.bottom + 6, hgt = h.offsetHeight || 120;
-      h.style.top = (below + hgt > innerHeight - 8 ? Math.max(8, r.top - hgt - 6) : below) + "px"; };
-    w.addEventListener("mouseenter", ()=>requestAnimationFrame(place)); b.addEventListener("focus", ()=>requestAnimationFrame(place));
-    b.addEventListener("click", ev=>{ ev.stopPropagation(); w.classList.toggle("open"); requestAnimationFrame(place); });
-    document.querySelector("aside").addEventListener("scroll", ()=>w.classList.remove("open"), {passive:true});
-    h.parentNode.insertBefore(w, h); w.appendChild(b); w.appendChild(h);
+    const btn = document.createElement("button"); btn.className = "info"; btn.type = "button"; btn.textContent = "i"; btn.setAttribute("aria-label","More information");
+    h.parentNode.insertBefore(w, h); w.appendChild(btn); w.appendChild(h);
     const host = prev && prev.matches("label,.check,.seg,select") ? prev : null;
     if (host){ const t = host.querySelector(".row") || host; t.appendChild(w); }
+    btn.addEventListener("mouseenter", ()=>show(btn, h)); btn.addEventListener("focus", ()=>show(btn, h));
+    btn.addEventListener("mouseleave", ()=>{ if (pinned !== btn) box.style.display = "none"; });
+    btn.addEventListener("blur", ()=>{ if (pinned !== btn) box.style.display = "none"; });
+    btn.addEventListener("click", ev=>{ ev.stopPropagation(); if (pinned === btn) hide(); else { pinned = btn; show(btn, h); } });
   });
-  document.addEventListener("click", ()=>document.querySelectorAll(".tipwrap.open").forEach(w=>w.classList.remove("open")));
+  document.addEventListener("click", hide);
+  document.querySelector("aside.controls").addEventListener("scroll", hide, {passive:true});
+}
+let lastClick = [0,0];
+function openPop(){
+  const p = $("cellpop"); p.style.display = "block";
+  const wd = p.offsetWidth, ht = p.offsetHeight; let [x,y] = lastClick;
+  let left = x + 14; if (left + wd > innerWidth - 8) left = x - wd - 14;
+  let top = y - 20; if (top + ht > innerHeight - 8) top = innerHeight - ht - 8;
+  p.style.left = Math.max(8,left) + "px"; p.style.top = Math.max(8,top) + "px";
 }
 function setupHow(){
   const how = document.createElement("div"); how.className = "wrap"; how.id = "howview"; how.hidden = true;
@@ -526,8 +567,8 @@ function render(){
   const tb = $("ctable").querySelector("tbody");
   tb.innerHTML = rows.length ? rows.map(([iso,c])=>{
     const code = META.isos[iso]; const src = s.capmode==="national" ? ({N:"national",E:"EU Directive",G:"global median"})[(META.caps[code]?.Ni||[0,"G"])[1]] : s.capmode;
-    return `<tr><td>${META.names[code]||code}</td><td><span class="pill">${src}</span></td><td class="n">${(c.cap/1e6).toFixed(2)}</td><td class="n">${fmtPct(100*c.cap/c.ha)}</td></tr>`; }).join("")
-    : `<tr><td colspan="4" style="color:var(--muted)">No cropland reaches a limit within ${s.T} ${s.T===1?"year":"years"}.</td></tr>`;
+    return `<tr><td>${META.names[code]||code}</td><td class="n">${(c.cap/1e6).toFixed(2)}</td><td class="n">${fmtPct(100*c.cap/c.ha)}</td></tr>`; }).join("")
+    : `<tr><td colspan="3" style="color:var(--muted)">No cropland reaches a limit within ${s.T} ${s.T===1?"year":"years"}.</td></tr>`;
 
   drawMap(); if (selected >= 0) showDetail(selected);
 }
@@ -556,6 +597,8 @@ function drawMap(){
     if (pre[i] && !excl[i] && ((C.row[i] + C.col[i]) % 2 === 0)) c = pr;
     d[p]=c[0]; d[p+1]=c[1]; d[p+2]=c[2];
   }
+  const bi = hexToRgb(css("--ink"));
+  for (let q=0,p=0;q<C.border.length;q++,p+=4) if (C.border[q]){ d[p]=Math.round(d[p]*0.82+bi[0]*0.18); d[p+1]=Math.round(d[p+1]*0.82+bi[1]*0.18); d[p+2]=Math.round(d[p+2]*0.82+bi[2]*0.18); }
   if (selected>=0){ const r=C.row[selected]-40, cc=C.col[selected]; const ink=hexToRgb(css("--ink"));
     for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ if (Math.max(Math.abs(dx),Math.abs(dy))!==3) continue; const rr=r+dy, c2=cc+dx; if(rr<0||rr>=560||c2<0||c2>=1440) continue; const p=(rr*1440+c2)*4; d[p]=ink[0]; d[p+1]=ink[1]; d[p+2]=ink[2]; } }
   ctx.putImageData(img,0,0);
@@ -586,7 +629,7 @@ function showDetail(i){
     return `<tr><td>${e}</td><td class="n">${rc.toPrecision(3)}</td><td class="n">${bg.toPrecision(3)}</td><td class="n">${cap.toPrecision(3)}<span class="hint"> ${({N:"nat",E:"EU",G:"med",S:"min",L:"max",P:"pH",X:"texture"})[src]}</span></td><td class="n">${head<=0?"–":fmtT(t)}</td><td class="n"><span class="pill ${cls}">${y}</span></td></tr>`;
   }).join("");
   const hou = META.hou_elements.map(e=>`${e} ${(C.P[e][i]/250).toFixed(2)}`).join(" · ");
-  $("clearsel").hidden = false;
+  openPop();
   $("detail").innerHTML = `<p style="margin:0 0 6px"><b>${META.names[iso]||iso}</b> · ${lat.toFixed(2)}°, ${lon.toFixed(2)}° · ${(C.ha[i]/1000).toFixed(0)} kha cropland
     ${excl[i] ? ' · <span class="pill">excluded by Hou screen</span>' : ""}</p>
     <p class="hint" style="margin:0 0 8px">Year-1 dissolution: ${(k1*100).toFixed(1)}%${s.mode==="topup" ? ` · long-run top-up × ${phi.toFixed(2)} (soil pH ${C.ph[i].toFixed(1)}, CEC ${C.cec[i].toFixed(0)})` : ""} · Rock applied by year ${s.T}: ${cumAt(s.T,s,k1,phi).toFixed(0)} t/ha · Hou P: ${hou}</p>
@@ -615,15 +658,15 @@ function bind(){
   document.querySelectorAll("aside select, aside input").forEach(el=>el.addEventListener("input", ()=>{ markCustom(); schedule(); }));
   $("customgrid").addEventListener("input", ()=>{ markCustom(); schedule(); });
   document.querySelectorAll("#modeSeg button").forEach(b=>b.addEventListener("click",()=>{ setSeg("modeSeg","mode",b.dataset.mode); markCustom(); schedule(); }));
-  const clearSel = ()=>{ selected=-1; $("clearsel").hidden=true; $("detail").innerHTML='<p class="empty">Click a cell on the map.</p>'; result && drawMap(); };
-  $("clearsel").addEventListener("click", clearSel);
+  const clearSel = ()=>{ selected=-1; $("cellpop").style.display="none"; result && drawMap(); };
+  $("cellx").addEventListener("click", clearSel);
   document.addEventListener("keydown", ev=>{ if (ev.key==="Escape" && selected>=0) clearSel(); });
   document.querySelectorAll("#layerSeg button").forEach(b=>b.addEventListener("click",()=>{ setSeg("layerSeg","layer",b.dataset.layer); result && (result.s.layer=b.dataset.layer, drawMap(), syncLabels(result.s)); }));
   document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset)));
   $("map").addEventListener("click", ev=>{
     const r = $("map").getBoundingClientRect(); const x = Math.floor((ev.clientX-r.left)/r.width*1440), y = Math.floor((ev.clientY-r.top)/r.height*560)+40;
     let best=-1, bd=1e9; for (let dy=-4;dy<=4;dy++) for (let dx=-4;dx<=4;dx++){ const rr=y+dy, cc=x+dx; if(rr<0||rr>=720||cc<0||cc>=1440) continue; const i=gridIdx[rr*1440+cc]; if(i>=0){ const dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=i;} } }
-    if (best>=0){ selected=best; drawMap(); showDetail(best); }
+    if (best>=0){ lastClick=[ev.clientX, ev.clientY]; selected=best; drawMap(); showDetail(best); }
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>result && render());
   new MutationObserver(()=>result && render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
