@@ -543,7 +543,7 @@ function render(){
   $("k_pre").textContent = fmtPct(100*preHa/elig);
 
   // curve
-  const W=560,H=220,pl=40,pr=10,pt=10,pb=28, iw=W-pl-pr, ih=H-pt-pb;
+  const W=560,H=170,pl=40,pr=10,pt=10,pb=28, iw=W-pl-pr, ih=H-pt-pb;
   let cum=0; const pts=[[0,0]]; for (let y=1;y<=s.T;y++){ cum+=byYear[y]; pts.push([y,100*cum/elig]); }
   const ymax = Math.max(5, Math.ceil(Math.max(...pts.map(p=>p[1]))/5)*5);
   const X = y => pl + iw*y/s.T, Y = v => pt + ih*(1 - v/ymax);
